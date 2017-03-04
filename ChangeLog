@@ -1,0 +1,8 @@
+# Change Log
+All notable changes to this project will be documented in this file.
+
+## [Unreleased]
+
+### Added
+- Using autotools to generate Makefile
+- Copied basic functionality from plankit

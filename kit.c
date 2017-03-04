@@ -85,9 +85,9 @@ int main(int argc, char *argv[]) {
     Entry *entry;
     FILE *input_file = NULL;
 
-    //build_dictionary();
-    //create_stack();
-    //create_stack_r();
+    build_dictionary();
+    create_stack();
+    create_stack_r();
 
     // Open input file if specified; otherwise stdin
     if (argc > 1) {
@@ -128,12 +128,12 @@ int main(int argc, char *argv[]) {
     }
 
     // Clean up
-    //destroy_dictionary();
-    //destroy_stack();
-    //destroy_stack_r();
+    destroy_dictionary();
+    destroy_stack();
+    destroy_stack_r();
 
-    //destroy_input_stack();
-    //yylex_destroy();
+    destroy_input_stack();
+    yylex_destroy();
 
     if (input_file) fclose(input_file);
 }
