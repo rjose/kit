@@ -10,6 +10,7 @@ AM_INIT_AUTOMAKE
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_LEX
 
 AC_CHECK_PROGS([DOXYGEN], [doxygen])
 if test -z "$DOXYGEN";
@@ -19,6 +20,7 @@ fi
 AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$DOXYGEN"])
 
 # Checks for libraries.
+PKG_CHECK_MODULES([DEPS], [glib-2.0,sqlite3])
 
 # Checks for header files.
 
