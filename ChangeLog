@@ -6,3 +6,6 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Using autotools to generate Makefile
 - Copied basic functionality from plankit
+
+### Changed
+- Add process_token that's shared between the main control loop and execute string

@@ -15,6 +15,9 @@ void execute_string(const gchar *str);
 
 void EC_push_param0(gpointer gp_entry);
 
+void process_token(Token token);
+void execute_string(const gchar *str);
+
 
 #define EC_DB_STR_SETTER(_ec_func_name_, _word_, _db_table_name_, _field_name_) \
     static void _ec_func_name_(gpointer gp_entry) { \
