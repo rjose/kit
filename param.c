@@ -140,6 +140,7 @@ Param *new_custom_param(gpointer val_custom, const gchar *comment) {
     Param *result = new_param();
     result->type = 'C';
     result->val_custom = val_custom;
+    result->free_custom = free_nop;
     g_strlcpy(result->val_custom_comment, comment, MAX_WORD_LEN);
     return result;
 }
@@ -222,17 +223,36 @@ void print_param(Param *param, FILE *file, const gchar *prefix) {
 
 \param gp_param: Pointer to a Param to free.
 
-\note This function does *not* free custom data.
+For custom data
+
 */
 // -----------------------------------------------------------------------------
 void free_param(gpointer gp_param) {
     Param *param = gp_param;
-    g_free(param->val_string);
 
 
-    if (param->type == 'P') {
+    if (param->type == 'S') {
+        g_free(param->val_string);
+    }
+    else if (param->type == 'P') {
         g_sequence_free(param->val_pseudo_entry.params);
+    }
+    else if (param->type == 'C') {
+        param->free_custom(param->val_custom);
     }
 
     g_free(param);
+}
+
+
+
+// -----------------------------------------------------------------------------
+/** No-op free function used to do nothing for custom data.
+
+\note If memory should be freed, the 'free_custom' function should be set to
+the appropriate function.
+*/
+// -----------------------------------------------------------------------------
+void free_nop(gpointer param) {
+    return;
 }

@@ -56,23 +56,28 @@ static void EC_interactive(gpointer gp_entry) {
 // -----------------------------------------------------------------------------
 /** Creates a new constant entry.
 
-This reads the next token and uses this as the word for the entry. It pops a
-parameter off the stack and uses this as the value of the constant. The
-routine for the new constant pushes this value onto the stack.
+(val str-name -- )
+
+This pops a string and then a value and then creates a constant using
+the string for the name.
+
+The routine for the new constant pushes this value onto the stack.
 
 \param gp_entry: Unused entry for the "constant" word
 
 */
 // -----------------------------------------------------------------------------
 static void EC_constant(gpointer gp_entry) {
-    Token token = get_token();
+    Param *param_str = pop_param();
     Param *param0 = pop_param();
 
     // NOTE: When we add the popped param to the entry, its memory is
-    //       managed by that entry.
-    Entry *entry_new = add_entry(token.word);
+    //       managed by that entry, so we don't need to free it here.
+    Entry *entry_new = add_entry(param_str->val_string);
     entry_new->routine = EC_push_param0;
     add_entry_param(entry_new, param0);
+
+    free_param(param_str);
 }
 
 
@@ -80,17 +85,21 @@ static void EC_constant(gpointer gp_entry) {
 // -----------------------------------------------------------------------------
 /** Creates a new variable entry.
 
-This reads the next token and uses this as the word for the entry.
-The routine for the new constant pushes the address of the variable's
-entry onto the stack.
 
-\param gp_entry: Unused
+(str-name -- )
+
+This pops a string off the stack and uses this as the word for the entry.
+
+The routine for the new variable pushes the address of the variable's
+entry onto the stack.
 
 */
 // -----------------------------------------------------------------------------
 static void EC_variable(gpointer gp_entry) {
-    Token token = get_token();
-    add_variable(token.word);
+    Param *param_str = pop_param();
+    add_variable(param_str->val_string);
+
+    free_param(param_str);
 }
 
 

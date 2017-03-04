@@ -29,6 +29,7 @@ for all files so that.
 
 
 typedef void (*routine_ptr)(gpointer entry);  /**< \brief Function pointer type for the routine of an Entry */
+typedef void (*free_ptr)(gpointer entry);  /**< \brief Function pointer type functions that clear custom data */
 
 /** \brief Structure of Dictionary entries
 */
@@ -66,7 +67,9 @@ typedef struct {
     gpointer val_entry;       /**< \brief Entry pointer value of an 'E' param */
     routine_ptr val_routine;  /**< \brief Routine ptr of an 'R' param */
     Entry val_pseudo_entry;   /**< \brief Pseudo Entry of a 'P' param */
-    gpointer val_custom;      /**< \brief Custom data *not* freed  by free_param */
+
+    gpointer val_custom;      /**< \brief Custom data that is freed by free_custom */
+    free_ptr free_custom;     /**< \brief Frees custom data */
     gchar val_custom_comment[MAX_WORD_LEN];  /**< \brief Describes custom data */ 
 } Param;
 

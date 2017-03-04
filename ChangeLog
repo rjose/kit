@@ -8,4 +8,8 @@ All notable changes to this project will be documented in this file.
 - Copied basic functionality from plankit
 
 ### Changed
-- Add process_token that's shared between the main control loop and execute string
+- Add process_token that's shared between the main control loop and
+  execute string
+- Changed convention for constant and variable so that their names come from
+  strings on the stack
+- Custom params can have a destructor specified via free_custom
