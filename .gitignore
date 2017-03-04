@@ -19,3 +19,5 @@ kit
 *.o
 stamp-h1
 .deps
+html/
+latex/
