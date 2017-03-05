@@ -13,3 +13,4 @@ All notable changes to this project will be documented in this file.
 - Changed convention for constant and variable so that their names come from
   strings on the stack
 - Custom params can have a destructor specified via free_custom
+- Generalized printing of params

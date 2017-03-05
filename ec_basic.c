@@ -7,6 +7,7 @@ routines used when defining entries dynamically.
 
 */
 
+
 static void EC_execute(gpointer gp_entry);
 static void EC_jmp(gpointer gp_entry);
 static void EC_jmp_if_false(gpointer gp_entry);
@@ -125,7 +126,8 @@ static void EC_store_variable_value(gpointer gp_entry) {
 
     if (p_var->type != 'E') {
         handle_error(ERR_INVALID_PARAM);
-        print_param(p_var, stderr, "----> ");
+        fprintf(stderr, "----> ");
+        print_param(stderr, p_var);
         return;
     }
 
@@ -200,7 +202,7 @@ static void EC_push_entry_address(gpointer gp_entry) {
 
 static void gfunc_print_param(gpointer gp_param, gpointer user_data) {
     Param *param = gp_param;
-    print_param(param, stdout, "");
+    print_param(stdout, param);
 }
 
 
@@ -428,7 +430,7 @@ static void EC_print_definition(gpointer gp_entry) {
          iter = g_sequence_iter_next(iter)) {
 
         Param *p = g_sequence_get(iter);
-        print_param(p, stdout, "");
+        print_param(stdout, p);
     }
 
 done:
@@ -474,7 +476,8 @@ static void EC_execute(gpointer gp_entry) {
 
             default:
                 handle_error(ERR_UNKNOWN_WORD);
-                print_param(cur_param, stderr, "----->");
+                fprintf(stderr, "----->");
+                print_param(stderr, cur_param);
                 return;
         }
     }
@@ -489,7 +492,7 @@ static void EC_execute(gpointer gp_entry) {
 // -----------------------------------------------------------------------------
 static void EC_pop_and_print(gpointer gp_entry) {
     Param *param = pop_param();
-    print_param(param, stdout, "");
+    print_param(stdout, param);
     free_param(param);
 }
 

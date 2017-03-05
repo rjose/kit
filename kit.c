@@ -27,6 +27,7 @@ int main(int argc, char *argv[]) {
     FILE *input_file = NULL;
 
     build_dictionary();
+    create_print_functions();
     create_stack();
     create_stack_r();
 
@@ -55,9 +56,10 @@ int main(int argc, char *argv[]) {
     }
 
     // Clean up
-    destroy_dictionary();
-    destroy_stack();
     destroy_stack_r();
+    destroy_stack();
+    destroy_print_functions();
+    destroy_dictionary();
 
     destroy_input_stack();
     yylex_destroy();

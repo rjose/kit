@@ -17,4 +17,9 @@ Param *new_routine_param(routine_ptr val_routine);
 Param *new_pseudo_entry_param(const gchar *word, routine_ptr routine);
 Param *new_custom_param(gpointer val_custom, const gchar *comment);
 
-void print_param(Param *param, FILE *f, const gchar *prefix);
+typedef void (*print_param_func)(FILE *file, Param *param);
+
+void create_print_functions();
+void add_print_function(const gchar *type_name, print_param_func func);
+void destroy_print_functions();
+void print_param(FILE *f, Param *param);

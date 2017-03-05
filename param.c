@@ -8,6 +8,7 @@ params array of an Entry.
 See \ref param_types "Param types" for a description of each type of parameter.
 */
 
+static GHashTable *_custom_print_functions = NULL;
 
 // -----------------------------------------------------------------------------
 /** Creates a new Param.
@@ -161,7 +162,26 @@ void copy_param(Param *dst, Param *src) {
     dst->val_string = g_strdup(src->val_string);
 }
 
+void create_print_functions() {
+    _custom_print_functions = g_hash_table_new(g_str_hash, g_str_equal);
+}
 
+
+void destroy_print_functions() {
+    g_hash_table_destroy(_custom_print_functions);
+}
+
+
+static void print_custom_param(FILE *file, Param* param) {
+    print_param_func p_func = g_hash_table_lookup(_custom_print_functions, param->val_custom_comment);
+    if (!p_func) {
+        fprintf(file, "Custom param (%s)\n", param->val_custom_comment);
+    }
+    else {
+        p_func(file, param);
+    }
+    free_param(param);
+}
 
 // -----------------------------------------------------------------------------
 /** Prints a parameter to a file and with a prefix
@@ -172,46 +192,46 @@ void copy_param(Param *dst, Param *src) {
 
 */
 // -----------------------------------------------------------------------------
-void print_param(Param *param, FILE *file, const gchar *prefix) {
+void print_param(FILE *file, Param *param) {
     Entry *entry;
 
     if (!param) {
-        fprintf(file, "%sI: %s\n", prefix, "NULL param");
+        fprintf(file, "NULL param\n");
         return;
     }
 
     switch (param->type) {
         case 'I':
-            fprintf(file, "%sI: %ld\n", prefix, param->val_int);
+            fprintf(file, "%ld\n", param->val_int);
             break;
 
         case 'D':
-            fprintf(file, "%sD: %lf\n", prefix, param->val_double);
+            fprintf(file, "%lf\n", param->val_double);
             break;
 
         case 'S':
-            fprintf(file, "%sS: %s\n", prefix, param->val_string);
+            fprintf(file, "\"%s\"\n", param->val_string);
             break;
 
         case 'E':
             entry = param->val_entry;
-            fprintf(file, "%sE: %s\n", prefix, entry->word);
+            fprintf(file, "Entry: %s\n", entry->word);
             break;
 
         case 'R':
-            fprintf(file, "%sR: %ld\n", prefix, (gint64) param->val_routine);
+            fprintf(file, "Routine: %ld\n", (gint64) param->val_routine);
             break;
 
         case 'P':
-            fprintf(file, "%sP: %s\n", prefix, param->val_pseudo_entry.word);
+            fprintf(file, "Pseudo-entry: %s\n", param->val_pseudo_entry.word);
             break;
 
         case 'C':
-            fprintf(file, "%sC: %s\n", prefix, param->val_custom_comment);
+            print_custom_param(file, param);
             break;
 
         default:
-            fprintf(file, "%s%c: %s\n", prefix, param->type, "Unknown type");
+            fprintf(file, "%c: %s\n", param->type, "Unknown type");
             break;
     }
 }
@@ -230,6 +250,9 @@ For custom data
 void free_param(gpointer gp_param) {
     Param *param = gp_param;
 
+    if (!param) {
+        return;
+    }
 
     if (param->type == 'S') {
         g_free(param->val_string);
