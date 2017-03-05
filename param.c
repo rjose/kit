@@ -155,7 +155,7 @@ Param *new_custom_param(gpointer val_custom, const gchar *comment) {
       independently of the source Param.
 */
 // -----------------------------------------------------------------------------
-void copy_param(Param *dst, Param *src) {
+void copy_param(Param *dst, const Param *src) {
     *dst = *src;
 
     // Make a copy of the string since the dst needs to own it
@@ -180,7 +180,6 @@ static void print_custom_param(FILE *file, Param* param) {
     else {
         p_func(file, param);
     }
-    free_param(param);
 }
 
 // -----------------------------------------------------------------------------

@@ -5,7 +5,7 @@
 
 
 Param *new_param();
-void copy_param(Param *dst, Param *src);
+void copy_param(Param *dst, const Param *src);
 void free_param(gpointer param);
 void free_nop(gpointer param);
 

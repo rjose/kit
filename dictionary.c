@@ -51,7 +51,7 @@ Entry *add_entry(const gchar *word) {
 */
 // -----------------------------------------------------------------------------
 static void hook_up_extensions() {
-    //add_entry("lex-sequence")->routine = EC_add_sequence_lexicon;
+    add_entry("lex-sequence")->routine = EC_add_sequence_lexicon;
     //add_entry("lex-sqlite")->routine = EC_add_sqlite_lexicon;
     //add_entry("lex-notes")->routine = EC_add_notes_lexicon;
     //add_entry("lex-tasks")->routine = EC_add_tasks_lexicon;

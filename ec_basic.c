@@ -492,7 +492,7 @@ static void EC_execute(gpointer gp_entry) {
 // -----------------------------------------------------------------------------
 static void EC_pop_and_print(gpointer gp_entry) {
     Param *param = pop_param();
-    print_param(stdout, param);
+    print_param(stdout, param);  // This frees the param
     free_param(param);
 }
 
@@ -506,6 +506,21 @@ static void EC_pop_and_print(gpointer gp_entry) {
 static void EC_pop(gpointer gp_entry) {
     Param *param = pop_param();
     free_param(param);
+}
+
+
+
+// -----------------------------------------------------------------------------
+/** Duplicates the top of the stack.
+
+\note This may not be well-behaved for custom values
+
+*/
+// -----------------------------------------------------------------------------
+static void EC_dup(gpointer gp_entry) {
+    Param *param_new = new_param();
+    copy_param(param_new, top());
+    push_param(param_new);
 }
 
 
@@ -760,6 +775,20 @@ static void EC_execute_string(gpointer gp_entry) {
 
 
 
+static void EC_negate(gpointer gp_entry) {
+    Param *param_val = pop_param();
+
+    if (param_val->type == 'I') {
+        param_val->val_int *= -1;
+    }
+    else if (param_val->type == 'D') {
+        param_val->val_double *= -1;
+    }
+    push_param(param_val);
+}
+
+
+
 // -----------------------------------------------------------------------------
 /** Defines the basic words in a Forth dictionary
 
@@ -799,6 +828,10 @@ void add_basic_words() {
     add_entry(".")->routine = EC_pop_and_print;
     add_entry(".s")->routine = EC_print_stack;
     add_entry("pop")->routine = EC_pop;
+    add_entry("dup")->routine = EC_dup;
+
+    // TODO: Move this to a math lexicon
+    add_entry("negate")->routine = EC_negate;
 
     add_entry("constant")->routine = EC_constant;
     add_entry("variable")->routine = EC_variable;
