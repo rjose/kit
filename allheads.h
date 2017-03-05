@@ -23,6 +23,15 @@ for all files so that.
 #include <math.h>
 
 #define MAX_WORD_LEN  128       /**< \brief Longest entry word */
+#define MAX_TIMESTAMP_LEN 48    /**< \brief Max length of a timestamp string */
+#define MAX_QUERY_LEN 512       /**< \brief Max length of an SQL query */
+
+#define STR_TO_INT(_string_) \
+    ((_string_) ? g_ascii_strtoll((_string_), NULL, 10) : 0)
+
+
+
+// TODO: Get rid of these
 #define MAX_ID_LEN   16         /**< \brief Used to convert IDs to strings */
 #define MAX_INT_LEN   24        /**< \brief Used to convert ints to strings */
 #define MAX_DOUBLE_LEN   6      /**< \brief Used to convert doubles to strings */

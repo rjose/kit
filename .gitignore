@@ -23,3 +23,5 @@ html/
 latex/
 ylwrap
 forth.c
+
+*.db

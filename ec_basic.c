@@ -587,7 +587,6 @@ int set_string_cb(gpointer gp_char_p_ref, int num_cols, char **values, char **co
 
 
 void execute_string(const gchar *str) {
-    Entry *entry;
     scan_string(str);
 
     while(1) {

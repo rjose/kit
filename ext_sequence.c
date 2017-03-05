@@ -71,7 +71,6 @@ static void EC_sort(gpointer gp_entry) {
     g_sequence_sort(sequence, cmp_func, param_word->val_string);
     push_param(param_seq);
 
-done:
     free_param(param_word);
     return;
 }

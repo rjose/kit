@@ -27,6 +27,9 @@ PKG_CHECK_MODULES([DEPS], [glib-2.0,sqlite3])
 # Checks for typedefs, structures, and compiler characteristics.
 
 # Checks for library functions.
+AC_SEARCH_LIBS([ceil], [m], [], [
+  AC_MSG_ERROR([unable to find the ceil() function])
+])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
