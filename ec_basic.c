@@ -490,7 +490,7 @@ static void EC_execute(gpointer gp_entry) {
 
 */
 // -----------------------------------------------------------------------------
-static void EC_pop_and_print(gpointer gp_entry) {
+static void EC_print(gpointer gp_entry) {
     Param *param = pop_param();
     print_param(stdout, param);  // This frees the param
     free_param(param);
@@ -825,7 +825,7 @@ void add_basic_words() {
     add_entry(".q")->routine = EC_quit;
     add_entry(".i")->routine = EC_interactive;
 
-    add_entry(".")->routine = EC_pop_and_print;
+    add_entry(".")->routine = EC_print;
     add_entry(".s")->routine = EC_print_stack;
     add_entry("pop")->routine = EC_pop;
     add_entry("dup")->routine = EC_dup;

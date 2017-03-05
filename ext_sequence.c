@@ -71,15 +71,6 @@ static void EC_sort(gpointer gp_entry) {
     g_sequence_sort(sequence, cmp_func, param_word->val_string);
     push_param(param_seq);
 
-    // TODO: Get rid of this
-//    for (GSequenceIter *iter = g_sequence_get_begin_iter(sequence);
-//         !g_sequence_iter_is_end(iter);
-//         iter = g_sequence_iter_next(iter)) {
-//
-//        Param *p = g_sequence_get(iter);
-//        printf("%ld\n", p->val_int);
-//    }
-
 done:
     free_param(param_word);
     return;
@@ -114,19 +105,19 @@ static void free_param_seq(gpointer gp_seq) {
 }
 
 
-/** Creates a sequence by popping params up until a "start seq" param.
 
-Since we add params to a sequence that will be pushed back onto the
-stack, we don't free the params.
+/** Constructs a sequence of items on the stack down to next '[' param
+
+\note The elements of the sequence need to be freed by the caller
 */
-static void end_seq(gpointer gp_entry) {
+static void EC_end_seq(gpointer gp_entry) {
     Param *param = pop_param();
     if (!param) {
         handle_error(ERR_STACK_UNDERFLOW);
         fprintf(stderr, "-----> stack underflow\n");
         return;
     }
-    GSequence *seq = g_sequence_new(free_param);
+    GSequence *seq = g_sequence_new(NULL);
     while(param->type != '[') {
         g_sequence_prepend(seq, param);
         param = pop_param();
@@ -144,25 +135,17 @@ static void end_seq(gpointer gp_entry) {
 }
 
 
-/** Constructs a sequence of items on the stack down to next '[' param
-
-\note The elements of the sequence need to be freed by the caller
-*/
-static void EC_end_seq(gpointer gp_entry) {
-    end_seq(gp_entry);
-}
-
-
 
 /** Maps a word over a seq
 
-\note This leaves the input sequence on the stack because it's not clear
-how its memory should be freed.
+The word should pop a param, freeing it when done, and then pushing
+a new value onto the stack.
 
 (seq-in word -- seq-out)
 */
 static void EC_map(gpointer gp_entry) {
     Param *param_word = pop_param();
+
     Param *param_seq = pop_param();
     GSequence *seq = param_seq->val_custom;
 
@@ -174,14 +157,34 @@ static void EC_map(gpointer gp_entry) {
 
         Param *param = g_sequence_get(iter);
         push_param(param);
-        execute_string(param_word->val_string);
+        execute_string(param_word->val_string);  // This will consume param
     }
 
     execute_string("]");
 
     free_param(param_word);
-    free_param_seq(param_seq);
+    free_param(param_seq);
 }
+
+
+static void print_seq(FILE *file, Param *param) {
+    GSequence *sequence = param->val_custom;
+
+    fprintf(file, "Sequence: %s\n", param->val_custom_comment);
+    for (GSequenceIter *iter = g_sequence_get_begin_iter(sequence);
+         !g_sequence_iter_is_end(iter);
+         iter = g_sequence_iter_next(iter)) {
+
+        Param *p = g_sequence_get(iter);
+        fprintf(file, "    ");
+        print_param(file, p);
+
+        // The seq gets freed when printing, but not the params, so we have
+        // to free it here
+        free_param(p);
+    }
+}
+
 
 
 
@@ -198,4 +201,6 @@ void EC_add_sequence_lexicon(gpointer gp_entry) {
     add_entry("len")->routine = EC_len;
     add_entry("map")->routine = EC_map;
     add_entry("sort")->routine = EC_sort;
+
+    add_print_function("[?]", print_seq);
 }

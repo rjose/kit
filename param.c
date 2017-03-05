@@ -167,6 +167,13 @@ void create_print_functions() {
 }
 
 
+
+void add_print_function(const gchar *type_name, print_param_func func) {
+    g_hash_table_insert(_custom_print_functions, (gpointer) type_name, (gpointer) func);
+}
+
+
+
 void destroy_print_functions() {
     g_hash_table_destroy(_custom_print_functions);
 }
