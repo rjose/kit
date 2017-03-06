@@ -60,6 +60,13 @@ static void free_note(gpointer gp_note) {
 }
 
 
+static void print_note(FILE *file, Param *param) {
+    printf("TODO: Print note\n");
+    free_param(param);
+}
+
+
+
 
 // -----------------------------------------------------------------------------
 /** Gets a database connection from the "notes-db" variable.
@@ -74,6 +81,7 @@ static sqlite3 *get_db_connection() {
     free_param(param_connection);
     return result;
 }
+
 
 
 // I think we can get a generic sequence of records. The elements will be
@@ -104,7 +112,7 @@ static GSequence *select_notes(const gchar *sql_query) {
     char *error_message = NULL;
     GSequence *records = sql_select(connection, sql_query, &error_message);
 
-    GSequence *result = g_sequence_new(free_param);
+    GSequence *result = g_sequence_new(NULL);
     if (error_message) {
         handle_error(ERR_GENERIC_ERROR);
         fprintf(stderr, "-----> Problem executing 'select_notes'\n----->%s", error_message);
@@ -492,8 +500,12 @@ void EC_add_notes_lexicon(gpointer gp_entry) {
     add_entry("E")->routine = EC_end_chunk;
 
     add_entry("time")->routine = EC_time;
+
     add_entry("today-notes")->routine = EC_today_notes;
     add_entry("chunk-notes")->routine = EC_chunk_notes;
     add_entry("print-notes")->routine = EC_print;
     add_entry("note_ids-to-notes")->routine = EC_note_ids_to_notes;
+
+    add_print_function("[Note]", print_seq);
+    add_print_function("Note", print_note);
 }

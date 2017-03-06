@@ -166,7 +166,7 @@ static void EC_map(gpointer gp_entry) {
 }
 
 
-static void print_seq(FILE *file, Param *param) {
+void print_seq(FILE *file, Param *param) {
     GSequence *sequence = param->val_custom;
 
     fprintf(file, "Sequence: %s\n", param->val_custom_comment);
@@ -177,10 +177,6 @@ static void print_seq(FILE *file, Param *param) {
         Param *p = g_sequence_get(iter);
         fprintf(file, "    ");
         print_param(file, p);
-
-        // The seq gets freed when printing, but not the params, so we have
-        // to free it here
-        free_param(p);
     }
 }
 
