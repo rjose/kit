@@ -215,8 +215,7 @@ static GSequence *select_notes(const gchar *sql_query) {
 
         GHashTable *record = g_sequence_get(iter);
         Note *note = record_to_note(record);
-        Param *param_new = new_custom_param(note, "Note");
-        param_new->free_custom = free_note;
+        Param *param_new = new_custom_param(note, "Note", free_note);
         g_sequence_append(result, param_new);
     }
 
@@ -303,8 +302,7 @@ static void EC_notes_today(gpointer gp_entry) {
     snprintf(query, MAX_QUERY_LEN, "%s where date = date('now', 'localtime')", SELECT_NOTES_PHRASE);
 
     GSequence *records = select_notes(query);
-    Param *param_new = new_custom_param(records, "[Note]");
-    param_new->free_custom = free_param_seq;
+    Param *param_new = new_custom_param(records, "[Note]", free_param_seq);
     push_param(param_new);
 }
 
@@ -401,8 +399,7 @@ static void EC_notes_last_chunk(gpointer gp_entry) {
         free_note(note);
     }
 
-    Param *param_new = new_custom_param(records, "[Note]");
-    param_new->free_custom = free_param_seq;
+    Param *param_new = new_custom_param(records, "[Note]", free_param_seq);
     push_param(param_new);
 }
 

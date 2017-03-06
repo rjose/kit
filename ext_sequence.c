@@ -128,8 +128,7 @@ static void EC_end_seq(gpointer gp_entry) {
     }
     free_param(param);  // This will be the '[' param
 
-    Param *param_new = new_custom_param(seq, "[?]");
-    param_new->free_custom = free_param_seq;
+    Param *param_new = new_custom_param(seq, "[?]", free_param_seq);
     push_param(param_new);
 }
 

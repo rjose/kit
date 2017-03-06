@@ -52,7 +52,7 @@ static void EC_sqlite3_open(gpointer gp_entry) {
         fprintf(stderr, "-----> sqlite3_open failed\n");
         return;
     }
-    Param *param_new = new_custom_param(connection, "sqlite3 connection");
+    Param *param_new = new_custom_param(connection, "sqlite3 connection", free_nop);
     push_param(param_new);
 
     free_param(db_file);
