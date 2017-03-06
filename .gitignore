@@ -25,3 +25,4 @@ ylwrap
 forth.c
 
 *.db
+vgcore.*

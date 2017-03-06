@@ -99,7 +99,7 @@ static void EC_start_seq(gpointer gp_entry) {
 }
 
 
-static void free_param_seq(gpointer gp_seq) {
+void free_param_seq(gpointer gp_seq) {
     g_sequence_free(gp_seq);
 }
 

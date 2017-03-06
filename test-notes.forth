@@ -15,4 +15,7 @@ notes-open
 # Become interactive
 # .i
 
-today-notes . .q
+notes-last-chunk .
+
+time
+.q
