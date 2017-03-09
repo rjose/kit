@@ -25,10 +25,16 @@ for all files so that.
 #define MAX_WORD_LEN  128       /**< \brief Longest entry word */
 #define MAX_TIMESTAMP_LEN 48    /**< \brief Max length of a timestamp string */
 #define MAX_QUERY_LEN 512       /**< \brief Max length of an SQL query */
+#define MAX_FORTH_LEN 512       /**< \brief Max length of a Forth string to execute */
 
 #define STR_TO_INT(_string_) \
     ((_string_) ? g_ascii_strtoll((_string_), NULL, 10) : 0)
 
+#define STR_TO_DOUBLE(_string_) \
+    ((_string_) ? g_ascii_strtod((_string_), NULL) : 0)
+
+#define STR_EQ(_str_l_, _str_r_) \
+    (g_strcmp0(_str_l_, _str_r_) == 0)
 
 
 // TODO: Get rid of these
@@ -94,5 +100,6 @@ typedef struct {
 #include "ext_notes.h"
 #include "ext_sequence.h"
 #include "ext_sqlite.h"
+#include "ext_trees.h"
 #include "ext_tasks.h"
 #include "ext_root_cause.h"
