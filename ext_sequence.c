@@ -147,9 +147,8 @@ gpointer copy_seq(gpointer gp_seq) {
     GSequence *result = g_sequence_new(free_param);
     FOREACH_SEQ(iter, src) {
         Param *param = g_sequence_get(iter);
-        Param *param_copy = new_param();
-        copy_param(param_copy, param);
-        g_sequence_append(result, param_copy);
+        COPY_PARAM(param_new, param);
+        g_sequence_append(result, param_new);
     }
 
     return result;
@@ -204,16 +203,9 @@ static void EC_map(gpointer gp_entry) {
 
     FOREACH_SEQ(iter, seq) {
         Param *param = g_sequence_get(iter);
-        Param *param_new = new_param();
-        copy_param(param_new, param);
+        COPY_PARAM(param_new, param);
         push_param(param_new);
         execute_string(param_word->val_string);  // This will consume param
-    }
-
-    for (GSequenceIter *iter=g_sequence_get_begin_iter(seq);
-         !g_sequence_iter_is_end(iter);
-         iter = g_sequence_iter_next(iter)) {
-
     }
 
     execute_string("]");
@@ -227,10 +219,7 @@ void print_seq(FILE *file, Param *param) {
     GSequence *sequence = param->val_custom;
 
     fprintf(file, "Sequence: %s\n", param->val_custom_type);
-    for (GSequenceIter *iter = g_sequence_get_begin_iter(sequence);
-         !g_sequence_iter_is_end(iter);
-         iter = g_sequence_iter_next(iter)) {
-
+    FOREACH_SEQ(iter, sequence) {
         Param *p = g_sequence_get(iter);
         fprintf(file, "    ");
         print_param(file, p);

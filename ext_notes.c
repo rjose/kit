@@ -144,18 +144,13 @@ static void print_note(FILE *file, Param *param) {
             printf("TODO: Format this:\n--> %s\n\n", note->note);
             break;
     }
-
-    free_param(param);
 }
 
 
 static void print_seq_notes(FILE *file, Param *param) {
     GSequence *sequence = param->val_custom;
 
-    for (GSequenceIter *iter = g_sequence_get_begin_iter(sequence);
-         !g_sequence_iter_is_end(iter);
-         iter = g_sequence_iter_next(iter)) {
-
+    FOREACH_SEQ(iter, sequence) {
         Param *p = g_sequence_get(iter);
         print_param(file, p);
     }
@@ -214,10 +209,7 @@ static GSequence *select_notes(const gchar *sql_query) {
         goto done;
     }
 
-    for (GSequenceIter *iter = g_sequence_get_begin_iter(records);
-         !g_sequence_iter_is_end(iter);
-         iter = g_sequence_iter_next(iter)) {
-
+    FOREACH_SEQ(iter, records) {
         GHashTable *record = g_sequence_get(iter);
         Note *note = record_to_note(record);
         Param *param_new = new_custom_param(note, "Note", free_note, copy_note_gp);
@@ -327,7 +319,6 @@ static Note *get_latest_S_note() {
     if (g_sequence_get_length(records) == 1) {
         Param *param_note = g_sequence_get(g_sequence_get_begin_iter(records));
         result = copy_note(param_note->val_custom);
-        free_param(param_note);
     }
 
     // Cleanup
@@ -352,7 +343,6 @@ static Note *get_latest_SE_note() {
     if (g_sequence_get_length(records) == 1) {
         Param *param_note = g_sequence_get(g_sequence_get_begin_iter(records));
         result = copy_note(param_note->val_custom);
-        free_param(param_note);
     }
 
     // Cleanup

@@ -160,10 +160,7 @@ static GSequence *select_tasks(const gchar *sql_query) {
         goto done;
     }
 
-    for (GSequenceIter *iter = g_sequence_get_begin_iter(records);
-         !g_sequence_iter_is_end(iter);
-         iter = g_sequence_iter_next(iter)) {
-
+    FOREACH_SEQ(iter, records) {
         GHashTable *record = g_sequence_get(iter);
         Task *task = record_to_task(record);
         Param *param_new = new_custom_param(task, "Task", free_task, copy_task_gp);
@@ -280,22 +277,18 @@ static void EC_get_task(gpointer gp_entry) {
             goto done;
         }
         Param *param_task = g_sequence_get(g_sequence_get_begin_iter(records));
-        Param *param_new = new_param();
-        copy_param(param_new, param_task);
+        COPY_PARAM(param_new, param_task);
         push_param(param_new);
+        g_sequence_free(records);
     }
 
 done:
-    g_sequence_free(records);
     free_param(param_id);
 }
 
 static void print_seq_tasks(FILE *file, Param *param) {
     GSequence *tasks = param->val_custom;
-    for (GSequenceIter *iter = g_sequence_get_begin_iter(tasks);
-         !g_sequence_iter_is_end(iter);
-         iter = g_sequence_iter_next(iter)) {
-
+    FOREACH_SEQ(iter, tasks) {
         Param *param_task = g_sequence_get(iter);
         print_task_line(file, param_task->val_custom);
     }
@@ -406,8 +399,6 @@ static void EC_descendants(gpointer gp_entry) {
     g_sequence_append(result, param_start_task);
     g_queue_push_tail(queue, param_start_task);
 
-    Param *param_new = NULL;
-
     while (!g_queue_is_empty(queue)) {
         Param *param_task = g_queue_pop_tail(queue);
         Task *task = param_task->val_custom;
@@ -418,9 +409,7 @@ static void EC_descendants(gpointer gp_entry) {
 
         FOREACH_SEQ(iter, subtasks) {
              Param *param_subtask = g_sequence_get(iter);
-             param_new = new_param();
-             copy_param(param_new, param_subtask);
-
+             COPY_PARAM(param_new, param_subtask);
              g_sequence_append(result, param_new);
              g_queue_push_tail(queue, param_new);
         }

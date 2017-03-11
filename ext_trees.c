@@ -164,10 +164,7 @@ static void EC_forest(gpointer gp_entry) {
     // Iterate over all items and add them to an item hash, a children hash, and an order hash
     // ---------------------------------
     gint64 position = 0;
-    for (GSequenceIter *iter=g_sequence_get_begin_iter(sequence);
-         !g_sequence_iter_is_end(iter);
-         iter = g_sequence_iter_next(iter), position++) {
-
+    FOREACH_SEQ(iter, sequence) {
         Param *param = g_sequence_get(iter);
         if (!param) continue;
 
@@ -259,10 +256,7 @@ static void print_hierarchy(FILE *file, Param *item, Forest *forest, gint level,
     GSequence *children = g_hash_table_lookup(forest->children, (gpointer) item_id);
     g_free(item_id);
 
-    for (GSequenceIter *iter=g_sequence_get_begin_iter(children);
-         !g_sequence_iter_is_end(iter);
-         iter = g_sequence_iter_next(iter)) {
-
+    FOREACH_SEQ(iter, children) {
         Param *subitem = g_sequence_get(iter);
         gboolean is_last = g_sequence_iter_is_end(g_sequence_iter_next(iter));
         print_hierarchy(file, subitem, forest, level+1, is_last);
@@ -278,10 +272,7 @@ static void print_forest(FILE *file, Param *param) {
     // ---------------------------------
     fprintf(file, "\n");
 
-    for (GSequenceIter *iter=g_sequence_get_begin_iter(forest->root_items);
-         !g_sequence_iter_is_end(iter);
-         iter = g_sequence_iter_next(iter)) {
-
+    FOREACH_SEQ(iter, forest->root_items) {
         Param *item = g_sequence_get(iter);
         gboolean is_last = g_sequence_iter_is_end(g_sequence_iter_next(iter));
         print_hierarchy(file, item, forest, 0, is_last);

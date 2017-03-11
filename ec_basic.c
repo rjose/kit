@@ -158,8 +158,7 @@ static void EC_fetch_variable_value(gpointer gp_entry) {
     GSequenceIter *iter = g_sequence_get_iter_at_pos(entry_var->params, 0);
     Param *var_value = g_sequence_get(iter);
 
-    Param *param_new = new_param();
-    copy_param(param_new, var_value);
+    COPY_PARAM(param_new, var_value);
     push_param(param_new);
 
     // Cleanup
@@ -179,8 +178,7 @@ void EC_push_param0(gpointer gp_entry) {
     GSequenceIter *begin = g_sequence_get_begin_iter(entry->params);
     Param *param0 = g_sequence_get(begin);
 
-    Param *param_new = new_param();
-    copy_param(param_new, param0);
+    COPY_PARAM(param_new, param0);
     push_param(param_new);
 }
 
@@ -425,10 +423,7 @@ static void EC_print_definition(gpointer gp_entry) {
         goto done;
     }
 
-    for (GSequenceIter *iter = g_sequence_get_begin_iter(entry->params);
-         !g_sequence_iter_is_end(iter);
-         iter = g_sequence_iter_next(iter)) {
-
+    FOREACH_SEQ(iter, entry->params) {
         Param *p = g_sequence_get(iter);
         print_param(stdout, p);
     }
@@ -528,8 +523,7 @@ static void EC_drop(gpointer gp_entry) {
 */
 // -----------------------------------------------------------------------------
 static void EC_dup(gpointer gp_entry) {
-    Param *param_new = new_param();
-    copy_param(param_new, top());
+    COPY_PARAM(param_new, top());
     push_param(param_new);
 }
 
@@ -644,10 +638,7 @@ static gchar *macro_substitute(const gchar *const_str) {
     // =================================
     guint result_len = 0;
     gchar *fragment;
-    for (GSequenceIter *iter=g_sequence_get_begin_iter(strings);
-         !g_sequence_iter_is_end(iter);
-         iter = g_sequence_iter_next(iter)) {
-
+    FOREACH_SEQ(iter, strings) {
         fragment = g_sequence_get(iter);
         result_len += strlen(fragment);
     }
@@ -658,10 +649,7 @@ static gchar *macro_substitute(const gchar *const_str) {
     // Copy strings into a result string
     // =================================
     gchar *start = result;
-    for (GSequenceIter *iter=g_sequence_get_begin_iter(strings);
-         !g_sequence_iter_is_end(iter);
-         iter = g_sequence_iter_next(iter)) {
-
+    FOREACH_SEQ(iter, strings) {
         start = g_stpcpy(start, g_sequence_get(iter));
     }
 
