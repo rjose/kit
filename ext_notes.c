@@ -56,14 +56,14 @@ static Note *copy_note(Note *src) {
 /** Frees an allocated Note.
 */
 // -----------------------------------------------------------------------------
-static void free_note(gpointer gp_note) {
+void free_note(gpointer gp_note) {
     Note *note = gp_note;
     g_free(note->note);
     g_free(note);
 }
 
 
-static gpointer copy_note_gp(gpointer gp_note) {
+gpointer copy_note_gp(gpointer gp_note) {
     return copy_note(gp_note);
 }
 
@@ -196,7 +196,7 @@ Note *record_to_note(GHashTable *record) {
 }
 
 
-static GSequence *select_notes(const gchar *sql_query) {
+GSequence *select_notes(const gchar *sql_query) {
     sqlite3 *connection = get_db_connection();
 
     char *error_message = NULL;

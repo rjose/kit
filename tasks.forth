@@ -1,11 +1,13 @@
 ## \file tasks.forth
 #
-# \brief App for managing tasks
-
 lex-tasks
 
 # TODO: Figure out why this doesn't work
 #: foreach   map pop ;
+
+## Gets the current task
+# ( -- Task )
+: cur-task   cur-task-id @ T ;
 
 
 # ======================================
@@ -45,10 +47,18 @@ lex-tasks
 : t  time ;
 
 
-## Prints all notes associated with a task
-# (Task -- [Note])
-#: notes     notes-for . ;
+## Prints all notes associated with a task (and all its descendants)
+# TODO: When we generalize @field, we should sort the notes, too
 #
+# (Task -- )
+: Notes     descendants
+            "'notes' @field" map
+            concat .
+;
+
+## Prints all notes associated with a task (and all its descendants)
+# ( -- )
+: notes cur-task Notes ;
 
 
 # ======================================
@@ -81,17 +91,16 @@ lex-tasks
 # ( Task -- )
 : pih    descendants incomplete in-decreasing-value as-forest . ;
 
-
 ## Prints ancestor chain of a task
-# ( Task -- )
-# : w    ancestors as-forest . ;
+# ( -- )
+: w    cur-task ancestors as-forest . ;
 
 ## (str -- tasks)
-#: /     search   in-decreasing-value . ;
+: /     search   in-decreasing-value . ;
 
 
 ## Prints all incomplete top level tasks
-#: l1    all "'parent_id' @field 0 ==" filter  incomplete in-decreasing-value . ;
+: l1    all "'parent_id' @field 0 ==" filter  incomplete in-decreasing-value . ;
 
 
 # ======================================
@@ -104,70 +113,49 @@ lex-tasks
 
 ## Marks a task as complete
 # (Task -- Task)
-# : X  1 "is_done" !field ;
+: X  1 "is_done" !field ;
 
 
 ## Marks a task as not complete
 # (Task -- Task)
-# : /X  0 "is_done" !field ;
+: /X  0 "is_done" !field ;
 
 ## Marks the current task as complete
 # ( -- )
-# : x    cur-task  X pop ;
+: x    cur-task  X ;
 
 ## Marks the current task as not complete
 # ( -- )
-# : /x    cur-task  /X pop ;
+: /x    cur-task  /X ;
 
 
-#
-## ======================================
-## Misc
-## ======================================
-#
-### Redefine 'm'ove task so the cur-task gets updated
-#: m    m refresh-cur-task ;
-#
-### Goes to the task with the most recent note
-#: active    last-active-id g ;
-#
-#
-### Move task to a thought or a bug
-## (task-id -- )
-#: bug    bug-tasks-id m ;
-#: th    thought-tasks-id m ;
-#: misc  misc-tasks-id m ;
+### Moves a task to a new parent
+# (child_Task parent_Task -- )
+: M   "id" @field         # (child_Task parent_id -- )
+      "parent_id" !field  # ( -- )
+; 
+
+
+### Moves current task to a new parent
+# (parent_id -- )
+: m   T cur-task swap M ;
+
+
+
+
+# ======================================
+# Misc
+# ======================================
+
+## Goes to the task that had the most recent note
+# ( -- )
+: go-last-active-task  last-active-task G ;
 
 
 # ======================================
 # STARTUP
 # ======================================
-
-# Open the databases
 open-db
+go-last-active-task
 
-# Go to last active task
-# active
-
-# 0 T .
-
-# 0 T "This is a task" ++
-
-# all incomplete   "id" "parent_id" forest .
-
-# all incomplete   "id" "parent_id" forest .
-# Become interactive
 .i
-
-# all "id" "parent_id" forest .
-
-#2 T descendants in-decreasing-value .
-
-# descendants in-decreasing-value as-forest . 
-#2 T descendants in-decreasing-value as-forest .
-#all in-decreasing-value as-forest .
-#all in-decreasing-value .
-
-#all incomplete .
-
-#.q

@@ -260,7 +260,7 @@ static void define_close_db() {
 */
 static void EC_get_task(gpointer gp_entry) {
     Task *task = NULL;
-    Param *param_id = pop_param();    
+    Param *param_id = pop_param();
     gchar query[MAX_QUERY_LEN];
     GSequence *records = NULL;
 
@@ -285,6 +285,34 @@ static void EC_get_task(gpointer gp_entry) {
 done:
     free_param(param_id);
 }
+
+
+
+/** Pushes task with most recent note
+( -- Task )
+*/
+static void EC_last_active_task(gpointer gp_entry) {
+    gchar query[MAX_QUERY_LEN];
+    // Get task with most recent note
+    snprintf(query, MAX_QUERY_LEN, "select id, pc.parent_id as parent_id, name, is_done, value "
+                                   "from tasks inner join parent_child as pc on pc.child_id=id "
+                                   "inner join task_notes as tn on tn.task_id = id "
+                                   "order by tn.note_id desc limit 1");
+    GSequence *records = select_tasks(query);
+    if (g_sequence_get_length(records) == 1) {
+        Param *param_task = g_sequence_get(g_sequence_get_begin_iter(records));
+        COPY_PARAM(param_new, param_task);
+        push_param(param_new);
+    }
+    else {
+        Task *task = copy_task(&_root_task);
+        push_param(new_custom_param(task, "Task", free_task, copy_task_gp));
+    }
+
+    g_sequence_free(records);
+}
+
+
 
 static void print_seq_tasks(FILE *file, Param *param) {
     GSequence *tasks = param->val_custom;
@@ -334,6 +362,19 @@ static void EC_all(gpointer gp_entry) {
 }
 
 
+/** Returns a sequence of notes for a task
+*/
+static GSequence *get_task_notes(gint64 task_id) {
+    gchar query[MAX_QUERY_LEN];
+    snprintf(query, MAX_QUERY_LEN, "select id, type, note, timestamp, date from notes "
+                                   "inner join task_notes as tn on tn.note_id = id "
+                                   "where tn.task_id = %ld order by id asc", task_id);
+
+    GSequence *result = select_notes(query);
+    return result;
+}
+
+
 /**
 (Task field-name -- value)
 */
@@ -356,12 +397,57 @@ static void EC_get_field(gpointer gp_entry) {
     else if (STR_EQ(field_name, "value")) {
         push_param(new_double_param(task->value));
     }
+    else if (STR_EQ(field_name, "notes")) {
+        push_param(new_custom_param(get_task_notes(task->id), "[Note]", free_seq, copy_seq));
+    }
     else {
         handle_error(ERR_GENERIC_ERROR);
         fprintf(stderr, "-----> Unknown Task field: %s\n", field_name);
     }
 
     free_param(param_field_name);
+    free_param(param_task);
+}
+
+/**
+(Task value field-name -- )
+*/
+static void EC_set_field(gpointer gp_entry) {
+    Param *param_field_name = pop_param();
+    Param *param_value = pop_param();
+    Param *param_task = pop_param();
+    gchar query[MAX_QUERY_LEN];
+
+    Task *task = param_task->val_custom;
+    gchar *field_name = param_field_name->val_string;
+
+    sqlite3 *connection = get_db_connection();
+    const gchar *error_message = NULL;
+
+    if (STR_EQ(field_name, "parent_id")) {
+        snprintf(query, MAX_QUERY_LEN, "update parent_child set parent_id=%ld where child_id=%ld", param_value->val_int, task->id);
+        error_message = sql_execute(connection, query);
+    }
+    else if (STR_EQ(field_name, "is_done")) {
+        snprintf(query, MAX_QUERY_LEN, "update tasks set is_done=%ld where id=%ld", param_value->val_int, task->id);
+        error_message = sql_execute(connection, query);
+    }
+    else if (STR_EQ(field_name, "value")) {
+        snprintf(query, MAX_QUERY_LEN, "update tasks set value=%lf where id=%ld", param_value->val_double, task->id);
+        error_message = sql_execute(connection, query);
+    }
+    else {
+        handle_error(ERR_GENERIC_ERROR);
+        fprintf(stderr, "-----> Unknown Task field: %s\n", field_name);
+    }
+
+    if (error_message) {
+        handle_error(ERR_GENERIC_ERROR);
+        fprintf(stderr, "----> Problem in EC_set_field: '%s'\n", error_message);
+    }
+
+    free_param(param_field_name);
+    free_param(param_value);
     free_param(param_task);
 }
 
@@ -423,6 +509,57 @@ static void EC_descendants(gpointer gp_entry) {
 }
 
 
+// -----------------------------------------------------------------------------
+/** Pushes a sequence of all ancestors of a task onto the stack
+*/
+// -----------------------------------------------------------------------------
+static void EC_ancestors(gpointer gp_entry) {
+    gchar query[MAX_QUERY_LEN];
+    Param *param_task = pop_param();  // We won't free this since we'll put it in the result
+    Task *task = param_task->val_custom;
+
+    GSequence *result = g_sequence_new(g_free);
+    g_sequence_append(result, param_task);
+    while (task->id != 0) {
+        snprintf(query, MAX_QUERY_LEN, "%s where id=%ld", SELECT_TASKS_PHRASE, task->parent_id);
+        GSequence *tasks = select_tasks(query);
+        if (g_sequence_get_length(tasks) == 0) {
+            g_sequence_free(tasks);
+            break;
+        }
+
+        param_task = g_sequence_get(g_sequence_get_begin_iter(tasks));
+        COPY_PARAM(param_new, param_task);
+        g_sequence_append(result, param_new);
+        task = param_new->val_custom;
+
+        g_sequence_free(tasks);
+    }
+
+    Param *param_result = new_custom_param(result, "[Task]", free_seq, copy_seq);
+    push_param(param_result);
+}
+
+
+
+// -----------------------------------------------------------------------------
+/** Pushes a sequence of tasks matching a string.
+*/
+// -----------------------------------------------------------------------------
+static void EC_search(gpointer gp_entry) {
+    gchar query[MAX_QUERY_LEN];
+
+    Param *param_search = pop_param();
+
+    snprintf(query, MAX_QUERY_LEN, "%s where name like '%%%s%%'", SELECT_TASKS_PHRASE, param_search->val_string);
+    free_param(param_search);
+    GSequence *tasks = select_tasks(query);
+
+    Param *param_result = new_custom_param(tasks, "[Task]", free_seq, copy_seq);
+    push_param(param_result);
+}
+
+
 
 // -----------------------------------------------------------------------------
 /** Defines the tasks lexicon.
@@ -430,7 +567,7 @@ static void EC_descendants(gpointer gp_entry) {
 The following words are defined for manipulating Tasks:
 
 ### Add tasks
-- + (string -- ) 
+- + (string -- )
 - ++ (string -- ) Creates a subtask of the specified task
 
 - link-note (note-id -- ) Connects the current task with the specified note
@@ -455,14 +592,19 @@ void EC_add_tasks_lexicon(gpointer gp_entry) {
     set_cur_task_id(0);
 
     add_entry("all")->routine = EC_all;
+    add_entry("ancestors")->routine = EC_ancestors;
     add_entry("descendants")->routine = EC_descendants;
     add_entry("T")->routine = EC_get_task;
+    add_entry("last-active-task")->routine = EC_last_active_task;
+    add_entry("search")->routine = EC_search;
 
     add_entry("T++")->routine = EC_add_subtask;
 
     add_entry("link-note")->routine = EC_link_note;
 
+    // TODO: Make these general like "."
     add_entry("@field")->routine = EC_get_field;
+    add_entry("!field")->routine = EC_set_field;
 
     add_print_function("[Task]", print_seq_tasks);
     add_print_function("Task", print_task);

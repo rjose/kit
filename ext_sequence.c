@@ -113,6 +113,38 @@ static void EC_filter(gpointer gp_entry) {
 
 
 
+/** Concatenate a sequence of sequences
+
+([Sequence] -- Sequence)
+*/
+static void EC_concat(gpointer gp_entry) {
+    Param *param_seq_seq = pop_param();
+    GSequence *seq_seq = param_seq_seq->val_custom;
+
+    GSequence *result = g_sequence_new(free_param);
+    gchar seq_type[MAX_WORD_LEN];
+    FOREACH_SEQ(iter, seq_seq) {
+        Param *param_seq = g_sequence_get(iter);
+        GSequence *seq = param_seq->val_custom;
+        g_strlcpy(seq_type, param_seq->val_custom_type, MAX_WORD_LEN);  // Yeah, only need to do this once...
+
+        for (GSequenceIter *jiter = g_sequence_get_begin_iter(seq);
+             !g_sequence_iter_is_end(jiter);
+             jiter = g_sequence_iter_next(jiter)) {
+
+            Param *param = g_sequence_get(jiter);
+            COPY_PARAM(param_new, param);
+            g_sequence_append(result, param_new);
+        }
+    }
+
+    push_param(new_custom_param(result, seq_type, free_seq, copy_seq));
+
+    free_param(param_seq_seq);
+}
+
+
+
 // -----------------------------------------------------------------------------
 /** Gets length of sequence
 
@@ -243,6 +275,8 @@ void EC_add_sequence_lexicon(gpointer gp_entry) {
     add_entry("map")->routine = EC_map;
     add_entry("sort")->routine = EC_sort;
     add_entry("filter")->routine = EC_filter;
+
+    add_entry("concat")->routine = EC_concat;
 
     add_print_function("[?]", print_seq);
 }

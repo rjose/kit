@@ -200,7 +200,27 @@ static void EC_push_entry_address(gpointer gp_entry) {
 
 static void gfunc_print_param(gpointer gp_param, gpointer user_data) {
     Param *param = gp_param;
-    print_param(stdout, param);
+    printf("%c: ", param->type);
+    switch(param->type) {
+        case 'I':
+            printf("%ld\n", param->val_int);
+            break;
+
+        case 'D':
+            printf("%lf\n", param->val_double);
+            break;
+
+        case 'S':
+            printf("\"%s\"\n", param->val_string);
+            break;
+
+        case 'C':
+            printf("%s\n", param->val_custom_type);
+            break;
+
+        default:
+            break;
+    }
 }
 
 
@@ -213,7 +233,7 @@ static void gfunc_print_param(gpointer gp_param, gpointer user_data) {
 static void EC_print_stack(gpointer gp_entry) {
     // NOTE: We're assuming that this goes from the first element to the last
     g_queue_foreach(_stack, gfunc_print_param, NULL);
-    printf("\n");
+    printf("--\n");
 }
 
 
@@ -518,13 +538,27 @@ static void EC_drop(gpointer gp_entry) {
 // -----------------------------------------------------------------------------
 /** Duplicates the top of the stack.
 
-\note This may not be well-behaved for custom values
-
 */
 // -----------------------------------------------------------------------------
 static void EC_dup(gpointer gp_entry) {
     COPY_PARAM(param_new, top());
     push_param(param_new);
+}
+
+
+
+// -----------------------------------------------------------------------------
+/** Swaps top two elements of stack
+
+(p1 p2 -- p2 p1)
+*/
+// -----------------------------------------------------------------------------
+static void EC_swap(gpointer gp_entry) {
+    Param *p2 = pop_param();
+    Param *p1 = pop_param();
+
+    push_param(p2);
+    push_param(p1);
 }
 
 
@@ -815,6 +849,31 @@ done:
 }
 
 
+/** Compares two items on stack
+(l r -- boolean)
+*/
+static void EC_equal(gpointer gp_entry) {
+    Param *param_r = pop_param();
+    Param *param_l = pop_param();
+
+    if (param_l->type != param_r->type) {
+        push_param(new_int_param(0));
+        return;
+    }
+
+    switch (param_l->type) {
+        case 'I':
+            push_param(new_int_param(param_l->val_int == param_r->val_int ? 1 : 0));
+            break;
+
+        default:
+            handle_error(ERR_GENERIC_ERROR);
+            fprintf(stderr, "---->Don't know how to compare '%c'\n", param_l->type);
+            break;
+    }
+}
+
+
 // -----------------------------------------------------------------------------
 /** Defines the basic words in a Forth dictionary
 
@@ -856,6 +915,7 @@ void add_basic_words() {
     add_entry("pop")->routine = EC_pop;
     add_entry("drop")->routine = EC_drop;
     add_entry("dup")->routine = EC_dup;
+    add_entry("swap")->routine = EC_swap;
 
     // TODO: Move this to a math lexicon
     add_entry("negate")->routine = EC_negate;
@@ -865,6 +925,8 @@ void add_basic_words() {
     add_entry("variable")->routine = EC_variable;
     add_entry("!")->routine = EC_store_variable_value;
     add_entry("@")->routine = EC_fetch_variable_value;
+
+    add_entry("==")->routine = EC_equal;
 
     add_entry(",")->routine = EC_execute_string;
 
