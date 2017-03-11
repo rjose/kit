@@ -1,0 +1,27 @@
+== Memory Strategy
+
+There are a number of conventions that must be followed throughout to ensure
+a solid memory management strategy:
+
+   1. Parameters that are pushed onto the stack are owned by the stack until
+      popped from the stack. If an object is on the stack, and the stack
+      is cleared, all of its allocated memory must be cleared.
+
+   2. Any parameters popped from the stack are the responsibility of the
+      word that popped them. If the word does not push a parameter back,
+      it must free that parameter before it completes executing.
+
+      In other words, stack parameters are destroyed as they are used.
+
+   3. Parameters may contain other parameters (but they must *only* contain
+      parameters). A container parameter is responsible for all of its elements.
+      When a container parameter is destroyed, it must destory all of its
+      elements. That means that a filter word *must copy* elements from the
+      input container before putting them into a result container.
+
+   4. When a custom parmeter is created, its destructor and copy constructor
+      *must* be specified. There will be generic free_param and copy_param
+      functions that will be able to free any parameter. When a container
+      parameter is created, it should specify 'free_param' as the destructor
+      for its elements. That will ensure that the appropriate actions are
+      taken when a parameter is to be freed.

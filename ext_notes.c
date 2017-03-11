@@ -63,6 +63,11 @@ static void free_note(gpointer gp_note) {
 }
 
 
+static gpointer copy_note_gp(gpointer gp_note) {
+    return copy_note(gp_note);
+}
+
+
 // -----------------------------------------------------------------------------
 /** Computes the elapsed minutes between two time_t structs.
 */
@@ -202,7 +207,7 @@ static GSequence *select_notes(const gchar *sql_query) {
     char *error_message = NULL;
     GSequence *records = sql_select(connection, sql_query, &error_message);
 
-    GSequence *result = g_sequence_new(NULL);
+    GSequence *result = g_sequence_new(free_param);
     if (error_message) {
         handle_error(ERR_GENERIC_ERROR);
         fprintf(stderr, "-----> Problem executing 'select_notes'\n----->%s", error_message);
@@ -215,7 +220,7 @@ static GSequence *select_notes(const gchar *sql_query) {
 
         GHashTable *record = g_sequence_get(iter);
         Note *note = record_to_note(record);
-        Param *param_new = new_custom_param(note, "Note", free_note);
+        Param *param_new = new_custom_param(note, "Note", free_note, copy_note_gp);
         g_sequence_append(result, param_new);
     }
 
@@ -302,7 +307,7 @@ static void EC_notes_today(gpointer gp_entry) {
     snprintf(query, MAX_QUERY_LEN, "%s where date = date('now', 'localtime')", SELECT_NOTES_PHRASE);
 
     GSequence *records = select_notes(query);
-    Param *param_new = new_custom_param(records, "[Note]", free_param_seq);
+    Param *param_new = new_custom_param(records, "[Note]", free_seq, copy_seq);
     push_param(param_new);
 }
 
@@ -391,7 +396,7 @@ static void EC_notes_last_chunk(gpointer gp_entry) {
 
     // If no starting note, then create an empty sequence of records
     if (!note) {
-        records = g_sequence_new(NULL);
+        records = g_sequence_new(free_param);
     }
     else {
         snprintf(query, MAX_QUERY_LEN, "%s where id >= %ld", SELECT_NOTES_PHRASE, note->id);
@@ -399,7 +404,7 @@ static void EC_notes_last_chunk(gpointer gp_entry) {
         free_note(note);
     }
 
-    Param *param_new = new_custom_param(records, "[Note]", free_param_seq);
+    Param *param_new = new_custom_param(records, "[Note]", free_seq, copy_seq);
     push_param(param_new);
 }
 

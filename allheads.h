@@ -36,6 +36,15 @@ for all files so that.
 #define STR_EQ(_str_l_, _str_r_) \
     (g_strcmp0(_str_l_, _str_r_) == 0)
 
+#define FOREACH_SEQ(_iter_, _seq_) \
+    for (GSequenceIter *_iter_ = g_sequence_get_begin_iter(_seq_); \
+         !g_sequence_iter_is_end(_iter_); \
+         iter = g_sequence_iter_next(_iter_))
+
+#define COPY_PARAM(_dst_, _src_) \
+    Param *_dst_ = new_param(); \
+    copy_param(_dst_, _src_);
+
 
 // TODO: Get rid of these
 #define MAX_ID_LEN   16         /**< \brief Used to convert IDs to strings */
@@ -44,7 +53,8 @@ for all files so that.
 
 
 typedef void (*routine_ptr)(gpointer entry);  /**< \brief Function pointer type for the routine of an Entry */
-typedef void (*free_ptr)(gpointer entry);  /**< \brief Function pointer type functions that clear custom data */
+typedef void (*free_custom_val_ptr)(gpointer val_custom);
+typedef gpointer (*copy_custom_val_ptr)(gpointer val_custom);
 
 /** \brief Structure of Dictionary entries
 */
@@ -84,8 +94,9 @@ typedef struct {
     Entry val_pseudo_entry;   /**< \brief Pseudo Entry of a 'P' param */
 
     gpointer val_custom;      /**< \brief Custom data that is freed by free_custom */
-    free_ptr free_custom;     /**< \brief Frees custom data */
-    gchar val_custom_comment[MAX_WORD_LEN];  /**< \brief Describes custom data */ 
+    free_custom_val_ptr free_custom;     /**< \brief Frees custom data */
+    copy_custom_val_ptr copy_custom;     /**< \brief Frees custom data */
+    gchar val_custom_type[MAX_WORD_LEN];  /**< \brief Describes custom data */ 
 } Param;
 
 

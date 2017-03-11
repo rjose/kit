@@ -18,3 +18,4 @@ All notable changes to this project will be documented in this file.
 - Add basic notes lexicon
 - Add basic tasks lexicon
 - Add basic trees lexicon
+- Follow consistent memory management strategy

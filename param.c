@@ -132,17 +132,18 @@ Param *new_pseudo_entry_param(const gchar *word, routine_ptr routine) {
 // -----------------------------------------------------------------------------
 /** Creates a new custom-data valued Param
 
-\param val_custom: Custom data for Param
-\returns newly allocated Param with the specified entry value
-
 */
 // -----------------------------------------------------------------------------
-Param *new_custom_param(gpointer val_custom, const gchar *comment, free_ptr free_custom) {
+Param *new_custom_param(gpointer val_custom, const gchar *custom_type,
+                        free_custom_val_ptr free_custom,
+                        copy_custom_val_ptr copy_custom) {
+
     Param *result = new_param();
     result->type = 'C';
     result->val_custom = val_custom;
     result->free_custom = free_custom;
-    g_strlcpy(result->val_custom_comment, comment, MAX_WORD_LEN);
+    result->copy_custom = copy_custom;
+    g_strlcpy(result->val_custom_type, custom_type, MAX_WORD_LEN);
     return result;
 }
 
@@ -160,7 +161,13 @@ void copy_param(Param *dst, const Param *src) {
 
     // Make a copy of the string since the dst needs to own it
     dst->val_string = g_strdup(src->val_string);
+
+    if (src->type == 'C') {
+        dst->val_custom = src->copy_custom(src->val_custom);
+    }
 }
+
+
 
 void create_print_functions() {
     _custom_print_functions = g_hash_table_new(g_str_hash, g_str_equal);
@@ -180,9 +187,9 @@ void destroy_print_functions() {
 
 
 static void print_custom_param(FILE *file, Param* param) {
-    print_param_func p_func = g_hash_table_lookup(_custom_print_functions, param->val_custom_comment);
+    print_param_func p_func = g_hash_table_lookup(_custom_print_functions, param->val_custom_type);
     if (!p_func) {
-        fprintf(file, "Custom param (%s)\n", param->val_custom_comment);
+        fprintf(file, "Custom param (%s)\n", param->val_custom_type);
     }
     else {
         p_func(file, param);
@@ -284,4 +291,8 @@ the appropriate function.
 // -----------------------------------------------------------------------------
 void free_nop(gpointer param) {
     return;
+}
+
+gpointer copy_nop(gpointer val_custom) {
+    return val_custom;
 }

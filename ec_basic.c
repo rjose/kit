@@ -797,6 +797,35 @@ static void EC_negate(gpointer gp_entry) {
 }
 
 
+static void EC_not(gpointer gp_entry) {
+    Param *param = pop_param();
+
+    gboolean result = 0;
+    switch (param->type) {
+        case 'I':
+            result = param->val_int == 0 ? 1 : 0;
+            break;
+
+        case 'D':
+            result = param->val_double == 0 ? 1 : 0;
+            break;
+
+        case 'S':
+            result = (STR_EQ(param->val_string, "")) ? 1 : 0;
+            break;
+
+        default:
+            handle_error(ERR_GENERIC_ERROR);
+            fprintf(stderr, "-----> Can't 'not' type '%c'\n", param->type);
+            goto done;
+    }
+
+    push_param(new_int_param(result));
+
+done:
+    free_param(param);
+}
+
 
 // -----------------------------------------------------------------------------
 /** Defines the basic words in a Forth dictionary
@@ -842,6 +871,7 @@ void add_basic_words() {
 
     // TODO: Move this to a math lexicon
     add_entry("negate")->routine = EC_negate;
+    add_entry("not")->routine = EC_not;
 
     add_entry("constant")->routine = EC_constant;
     add_entry("variable")->routine = EC_variable;

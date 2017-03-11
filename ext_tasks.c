@@ -71,6 +71,11 @@ static Task *copy_task(Task *src) {
 }
 
 
+static gpointer copy_task_gp(gpointer src) {
+    return copy_task(src);
+}
+
+
 static void free_task(gpointer gp_task) {
     g_free(gp_task);
 }
@@ -148,7 +153,7 @@ static GSequence *select_tasks(const gchar *sql_query) {
     char *error_message = NULL;
     GSequence *records = sql_select(connection, sql_query, &error_message);
 
-    GSequence *result = g_sequence_new(NULL);
+    GSequence *result = g_sequence_new(free_param);
     if (error_message) {
         handle_error(ERR_GENERIC_ERROR);
         fprintf(stderr, "-----> Problem executing 'select_tasks'\n----->%s", error_message);
@@ -161,7 +166,7 @@ static GSequence *select_tasks(const gchar *sql_query) {
 
         GHashTable *record = g_sequence_get(iter);
         Task *task = record_to_task(record);
-        Param *param_new = new_custom_param(task, "Task", free_task);
+        Param *param_new = new_custom_param(task, "Task", free_task, copy_task_gp);
         g_sequence_append(result, param_new);
     }
 
@@ -260,24 +265,28 @@ static void EC_get_task(gpointer gp_entry) {
     Task *task = NULL;
     Param *param_id = pop_param();    
     gchar query[MAX_QUERY_LEN];
+    GSequence *records = NULL;
 
     if (param_id->val_int == 0) {
         task = copy_task(&_root_task);
-        push_param(new_custom_param(task, "Task", free_task));
+        push_param(new_custom_param(task, "Task", free_task, copy_task_gp));
     }
     else {
         snprintf(query, MAX_QUERY_LEN, "%s where id = %ld", SELECT_TASKS_PHRASE, param_id->val_int);
-        GSequence *records = select_tasks(query);
+        records = select_tasks(query);
         if (g_sequence_get_length(records) != 1) {
             handle_error(ERR_GENERIC_ERROR);
             fprintf(stderr, "-----> Problem executing 'get_task'\n");
             goto done;
         }
         Param *param_task = g_sequence_get(g_sequence_get_begin_iter(records));
-        push_param(param_task);
+        Param *param_new = new_param();
+        copy_param(param_new, param_task);
+        push_param(param_new);
     }
 
 done:
+    g_sequence_free(records);
     free_param(param_id);
 }
 
@@ -328,16 +337,16 @@ static void EC_add_subtask(gpointer gp_entry) {
 */
 static void EC_all(gpointer gp_entry) {
     GSequence *records = select_tasks(SELECT_TASKS_PHRASE);
-    push_param(new_custom_param(records, "[Task]", free_param_seq));
+    push_param(new_custom_param(records, "[Task]", free_seq, copy_seq));
 }
 
 
 /**
-(Task field-name -- Task value)
+(Task field-name -- value)
 */
 static void EC_get_field(gpointer gp_entry) {
     Param *param_field_name = pop_param();
-    const Param *param_task = top();
+    Param *param_task = pop_param();
     Task *task = param_task->val_custom;
 
     gchar *field_name = param_field_name->val_string;
@@ -348,13 +357,21 @@ static void EC_get_field(gpointer gp_entry) {
     else if (STR_EQ(field_name, "parent_id")) {
         push_param(new_int_param(task->parent_id));
     }
+    else if (STR_EQ(field_name, "is_done")) {
+        push_param(new_int_param(task->is_done));
+    }
+    else if (STR_EQ(field_name, "value")) {
+        push_param(new_double_param(task->value));
+    }
     else {
         handle_error(ERR_GENERIC_ERROR);
         fprintf(stderr, "-----> Unknown Task field: %s\n", field_name);
     }
 
     free_param(param_field_name);
+    free_param(param_task);
 }
+
 
 /** Updates cur-task-id
 G: (task -- )
@@ -364,6 +381,58 @@ static void define_g() {
     execute_string(": G    'id' @field  cur-task-id ! ;");
     execute_string(": g    T G ;");
 }
+
+
+/** Closes database and then quits
+.q: ( -- )
+*/
+static void redefine_dot_q() {
+    execute_string(": .q    close-db .q ;");
+}
+
+
+/** Returns all descendants for a Task
+
+(Task -- [Task])
+*/
+static void EC_descendants(gpointer gp_entry) {
+    gchar query[MAX_QUERY_LEN];
+    Param *param_start_task = pop_param();  // We won't free this since we'll put it in the result
+
+    GSequence *result = g_sequence_new(free_param);
+    GQueue *queue = g_queue_new();
+
+    // Add first task to queue and then do BFS
+    g_sequence_append(result, param_start_task);
+    g_queue_push_tail(queue, param_start_task);
+
+    Param *param_new = NULL;
+
+    while (!g_queue_is_empty(queue)) {
+        Param *param_task = g_queue_pop_tail(queue);
+        Task *task = param_task->val_custom;
+
+        // Select all children of this task
+        snprintf(query, MAX_QUERY_LEN, "%s where parent_id=%ld", SELECT_TASKS_PHRASE, task->id);
+        GSequence *subtasks = select_tasks(query);
+
+        FOREACH_SEQ(iter, subtasks) {
+             Param *param_subtask = g_sequence_get(iter);
+             param_new = new_param();
+             copy_param(param_new, param_subtask);
+
+             g_sequence_append(result, param_new);
+             g_queue_push_tail(queue, param_new);
+        }
+        g_sequence_free(subtasks);
+    }
+
+    push_param(new_custom_param(result, "[Task]", free_seq, copy_seq));
+
+    // Cleanup
+    g_queue_free(queue);
+}
+
 
 
 // -----------------------------------------------------------------------------
@@ -397,9 +466,10 @@ void EC_add_tasks_lexicon(gpointer gp_entry) {
     set_cur_task_id(0);
 
     add_entry("all")->routine = EC_all;
+    add_entry("descendants")->routine = EC_descendants;
     add_entry("T")->routine = EC_get_task;
 
-    add_entry("++")->routine = EC_add_subtask;
+    add_entry("T++")->routine = EC_add_subtask;
 
     add_entry("link-note")->routine = EC_link_note;
 
@@ -408,7 +478,9 @@ void EC_add_tasks_lexicon(gpointer gp_entry) {
     add_print_function("[Task]", print_seq_tasks);
     add_print_function("Task", print_task);
 
+    // Consider moving these to a single function
     define_open_db();
     define_close_db();
+    redefine_dot_q();
     define_g();
 }

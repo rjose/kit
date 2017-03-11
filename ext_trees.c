@@ -19,12 +19,44 @@ typedef struct {
 } Forest;
 
 
+
+static void copy_forest_children(gpointer gp_key, gpointer gp_value, gpointer gp_result) {
+    GSequence *value = gp_value;
+    Forest *result = gp_result;
+
+    GSequence *sequence = g_sequence_new(free_param);
+    FOREACH_SEQ(iter, value) {
+        Param *param = g_sequence_get(iter);
+        COPY_PARAM(param_new, param);
+        g_sequence_append(sequence, param_new);
+    }
+
+    g_hash_table_insert(result->children, gp_key, (gpointer) sequence);
+}
+
+
 static Forest *copy_forest(Forest *src) {
     if (!src) return NULL;
 
     Forest *result = g_new(Forest, 1);
     *result = *src;
+
+    // Copy root items
+    result->root_items = g_sequence_new(free_param);
+    FOREACH_SEQ(iter, src->root_items) {
+        Param *param = g_sequence_get(iter);
+        COPY_PARAM(param_new, param);
+        g_sequence_append(result->root_items, param_new);
+    }
+
+    // Copy children
+    g_hash_table_foreach(src->children, copy_forest_children, result);
     return result;
+}
+
+
+static gpointer copy_forest_gp(gpointer src) {
+    return copy_forest(src);
 }
 
 
@@ -40,14 +72,6 @@ static void free_forest_entry(gpointer gp_key, gpointer gp_value, gpointer unuse
 static void free_forest(gpointer gp_forest) {
     Forest *forest = gp_forest;
 
-    for (GSequenceIter *iter = g_sequence_get_begin_iter(forest->root_items);
-         !g_sequence_iter_is_end(iter);
-         iter = g_sequence_iter_next(iter)) {
-
-        Param *item = g_sequence_get(iter);
-        free_param(item);
-    }
-
     g_sequence_free(forest->root_items);
     g_hash_table_foreach(forest->children, free_forest_entry, NULL);
     g_hash_table_destroy(forest->children);
@@ -61,10 +85,11 @@ gchar *get_id(const gchar *id_field, Param *param) {
     snprintf(forth_string, MAX_FORTH_LEN, "'%s' @field", id_field);
 
     // Extract id from object
-    push_param(param);              // (obj -- )
-    execute_string(forth_string);   // (obj val --)
-    Param *param_val = pop_param(); // (obj -- )
-    execute_string("drop");         // (obj val --)
+    COPY_PARAM(param_new, param);
+
+    push_param(param_new);          // (obj -- )
+    execute_string(forth_string);   // (val --)
+    Param *param_val = pop_param(); // ( -- )
 
     // Construct result
     gchar *result = NULL;
@@ -154,13 +179,10 @@ static void EC_forest(gpointer gp_entry) {
     // ---------------------------------
     // Split the items into those whose parents are in the table and whose parents aren't
     // ---------------------------------
-    GSequence *root_items = g_sequence_new(NULL);
+    GSequence *root_items = g_sequence_new(free_param);
     GSequence *non_root_items = g_sequence_new(NULL);
 
-    for (GSequenceIter *iter=g_sequence_get_begin_iter(sequence);
-         !g_sequence_iter_is_end(iter);
-         iter = g_sequence_iter_next(iter)) {
-
+    FOREACH_SEQ(iter, sequence) {
         Param *item = g_sequence_get(iter);
         if (!item) continue;
 
@@ -169,7 +191,9 @@ static void EC_forest(gpointer gp_entry) {
             g_sequence_append(non_root_items, item);
         }
         else {
-            g_sequence_append(root_items, item);
+            // The root items will be stored in the forest, so we need to copy them
+            COPY_PARAM(param_new, item);
+            g_sequence_append(root_items, param_new);
         }
         g_free(item_parent_id);
     }
@@ -183,32 +207,29 @@ static void EC_forest(gpointer gp_entry) {
     // ---------------------------------
     // Iterate over the nonroot items and add them to the children table as children items
     // ---------------------------------
-    for (GSequenceIter *iter=g_sequence_get_begin_iter(non_root_items);
-         !g_sequence_iter_is_end(iter);
-         iter = g_sequence_iter_next(iter)) {
-
+    FOREACH_SEQ(iter, non_root_items) {
         Param *item = g_sequence_get(iter);
-        gchar *item_parent_id = get_id(parent_id_field, item);
+        // The non-root items will be stored as children in the forest, so need to be copied here
+        COPY_PARAM(param_new, item);
+
+        gchar *item_parent_id = get_id(parent_id_field, param_new);
         GSequence *children = g_hash_table_lookup(parent_children, (gpointer) item_parent_id);
-        g_sequence_insert_sorted(children, item, compare_item_order, &order_info);
+        g_sequence_insert_sorted(children, param_new, compare_item_order, &order_info);
         g_free(item_parent_id);
     }
 
     // Push result
-    Forest forest = {
-        .children = parent_children,
-        .root_items = root_items
-    };
-    g_strlcpy(forest.id_field, id_field, MAX_FIELD_LEN);
-    g_strlcpy(forest.parent_id_field, parent_id_field, MAX_FIELD_LEN);
-
-    Forest *result = copy_forest(&forest); 
-    push_param(new_custom_param(result, "Forest", free_forest));
-
+    Forest *result = g_new(Forest, 1);
+    result->children = parent_children;
+    result->root_items = root_items; 
+    g_strlcpy(result->id_field, id_field, MAX_FIELD_LEN);
+    g_strlcpy(result->parent_id_field, parent_id_field, MAX_FIELD_LEN);
+    push_param(new_custom_param(result, "Forest", free_forest, copy_forest_gp));
 
     // Clean up
     g_sequence_free(non_root_items);
     g_hash_table_destroy(item_order);
+
     free_param(param_sequence);
     free_param(param_id_field);
     free_param(param_parent_id_field);
